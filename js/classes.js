@@ -60,7 +60,7 @@ class Fighter {
         ctx.closePath();
         ctx.fill();
 
-        // 3. Piernas vectoriales
+        // 3. Piernas
         ctx.lineWidth = 10;
         ctx.strokeStyle = this.color;
         ctx.lineCap = 'round';

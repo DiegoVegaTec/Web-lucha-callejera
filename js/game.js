@@ -23,14 +23,12 @@ let columns = mCanvas.width / fontSize;
 let dropPositions = Array(Math.floor(columns)).fill(1);
 
 function drawMatrixBackground() {
-    // Capa negra semi-transparente para dar el efecto de rastro/estela
     mCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
 
-    mCtx.fillStyle = '#00ff46'; // Verde Matrix clásico
+    mCtx.fillStyle = '#00ff46'; 
     mCtx.font = fontSize + 'px monospace';
 
-    // Si la pantalla cambia de tamaño, reajustar dinámicamente las columnas
     if (dropPositions.length !== Math.floor(mCanvas.width / fontSize)) {
         columns = mCanvas.width / fontSize;
         dropPositions = Array(Math.floor(columns)).fill(1);
@@ -43,7 +41,6 @@ function drawMatrixBackground() {
 
         mCtx.fillText(char, x, y);
 
-        // Devolver la gota al inicio de forma aleatoria una vez sale de la pantalla
         if (y > mCanvas.height && Math.random() > 0.975) {
             dropPositions[i] = 0;
         }
@@ -52,7 +49,7 @@ function drawMatrixBackground() {
 }
 // -----------------------------------------------------
 
-// Instancia de Luchadores
+// Instancias de Luchadores
 const player = new Fighter({
     position: { x: 150, y: 0 },
     velocity: { x: 0, y: 0 },
@@ -109,27 +106,22 @@ function determineWinner({ player, enemy, timerId }) {
     restartBtn.style.display = 'block';
 }
 
-// Bucle Continuo de Renderizado (Game Loop)
 function animate() {
     window.requestAnimationFrame(animate);
     
-    // 1. Dibujar el fondo Matrix externo
     drawMatrixBackground();
 
-    // 2. Limpiar e inicializar la arena de combate (Canvas interno)
     let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#0f172a');
     gradient.addColorStop(1, '#1e293b');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Suelo asfáltico
     ctx.fillStyle = '#334155';
     ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
     ctx.fillStyle = '#475569';
     ctx.fillRect(0, canvas.height - 40, canvas.width, 4); 
 
-    // Actualizar Luchadores
     player.update(ctx, gravity, canvas.height, enemy);
     enemy.update(ctx, gravity, canvas.height, player);
 
