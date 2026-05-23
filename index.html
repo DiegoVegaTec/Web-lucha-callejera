@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Lucha Callejera | 2D Fighting Game</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <div id="game-container">
+        <div id="hud">
+            <div class="health-bar-container">
+                <div id="player-health" class="health-bar"></div>
+            </div>
+            <div id="timer">99</div>
+            <div class="health-bar-container">
+                <div id="enemy-health" class="health-bar" style="float: right;"></div>
+            </div>
+        </div>
+
+        <div id="game-over-screen">
+            <div id="game-over-text">¡ROUND 1!</div>
+            <button id="restart-btn" onclick="restartGame()">VOLVER A LUCHAR</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <footer id="credits-footer">
+        <span>Hecho por <strong>DiegoVegaTec</strong></span>
+        <a href="https://x.com/DiegoVegaTec" target="_blank" rel="noopener noreferrer" id="x-button" title="Seguir en X">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+            </svg>
+            <span>@DiegoVegaTec</span>
+        </a>
+    </footer>
+
+    <script src="js/utils.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/classes.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
