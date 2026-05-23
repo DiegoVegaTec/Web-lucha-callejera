@@ -7,6 +7,7 @@ class Fighter {
         this.color = color;
         this.lastKey;
         
+        // Cajas de golpes básicos
         this.attackBox = {
             position: { x: this.position.x, y: this.position.y },
             offset: offset,
@@ -15,20 +16,32 @@ class Fighter {
         };
         
         this.isAttacking = false;
+        this.attackType = 'punch'; // 'punch', 'kick', 'special'
         this.health = 100;
+        this.energy = 0; 
         this.isAI = isAI;
         
         this.facing = isAI ? 'left' : 'right';
         this.animationFrame = 0;
+
+        // Propiedades de la bola de luz especial (Se mueve en línea recta)
+        this.specialBall = {
+            isActive: false,
+            x: 0,
+            y: 0,
+            radius: 20,
+            speed: 12,
+            direction: 1
+        };
     }
 
     drawHumanoid(ctx) {
         if (this.velocity.x !== 0 && this.position.y >= 386) {
-            this.animationFrame += 0.15; 
+            this.animationFrame += 0.18;
         } else if (this.position.y < 386) {
-            this.animationFrame = 0.5; 
+            this.animationFrame = (this.attackType === 'kick' && this.isAttacking) ? this.animationFrame + 0.4 : 0.5;
         } else {
-            this.animationFrame = 0; 
+            this.animationFrame = 0;
         }
 
         const posX = this.position.x + this.width / 2;
@@ -37,84 +50,155 @@ class Fighter {
         ctx.save();
         
         if (this.facing === 'left') {
-            ctx.translate(this.position.x + this.width / 2, 0);
+            ctx.translate(posX, 0);
             ctx.scale(-1, 1);
-            ctx.translate(-(this.position.x + this.width / 2), 0);
+            ctx.translate(-posX, 0);
         }
 
-        // 1. Cabeza con visor
+        // 1. Cabeza humana estilizada
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(posX, posY + 25, 20, 0, Math.PI * 2);
+        ctx.arc(posX, posY + 22, 18, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.fillRect(posX + 8, posY + 18, 8, 4); 
+        ctx.fillRect(posX + 6, posY + 15, 10, 4); 
 
-        // 2. Torso
+        // 2. Cuello
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(posX, posY + 40);
+        ctx.lineTo(posX, posY + 46);
+        ctx.stroke();
+
+        // 3. Torso anatómico
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(posX - 18, posY + 45);
-        ctx.lineTo(posX + 18, posY + 45);
-        ctx.lineTo(posX + 10, posY + 95);
-        ctx.lineTo(posX - 10, posY + 95);
+        ctx.moveTo(posX - 22, posY + 46);
+        ctx.lineTo(posX + 22, posY + 46);
+        ctx.lineTo(posX + 12, posY + 95);
+        ctx.lineTo(posX - 12, posY + 95);
         ctx.closePath();
         ctx.fill();
 
-        // 3. Piernas
-        ctx.lineWidth = 10;
+        // 4. Piernas articuladas
+        ctx.lineWidth = 12;
         ctx.strokeStyle = this.color;
         ctx.lineCap = 'round';
+        let legSwing = Math.sin(this.animationFrame);
 
-        // Pierna Izquierda
         ctx.beginPath();
         ctx.moveTo(posX - 8, posY + 95);
-        ctx.lineTo(posX - 12 + Math.sin(this.animationFrame) * 8, posY + 125);
-        ctx.lineTo(posX - 10 + Math.sin(this.animationFrame) * 6, posY + 150);
+        ctx.lineTo(posX - 14 + legSwing * 12, posY + 125);
+        ctx.lineTo(posX - 10 + legSwing * 10, posY + 150);
         ctx.stroke();
 
-        // Pierna Derecha
         ctx.beginPath();
         ctx.moveTo(posX + 8, posY + 95);
-        ctx.lineTo(posX + 12 - Math.sin(this.animationFrame) * 8, posY + 125);
-        ctx.lineTo(posX + 16 - Math.sin(this.animationFrame) * 6, posY + 150);
+        ctx.lineTo(posX + 14 - legSwing * 12, posY + 125);
+        ctx.lineTo(posX + 12 - legSwing * 10, posY + 150);
         ctx.stroke();
 
-        // 4. Brazos (Guardia / Ataque)
+        // 5. Brazos y ataques
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 8;
-        
+        ctx.lineWidth = 9;
+
         if (this.isAttacking) {
-            ctx.beginPath();
-            ctx.moveTo(posX + 8, posY + 55);
-            ctx.lineTo(posX + 45, posY + 55);
-            ctx.stroke();
-            ctx.fillStyle = '#ffcc00';
-            ctx.beginPath();
-            ctx.arc(posX + 48, posY + 55, 8, 0, Math.PI * 2);
-            ctx.fill();
+            if (this.attackType === 'punch') {
+                ctx.beginPath();
+                ctx.moveTo(posX + 10, posY + 55);
+                ctx.lineTo(posX + 48, posY + 55);
+                ctx.stroke();
+                ctx.fillStyle = '#ffcc00';
+                ctx.beginPath();
+                ctx.arc(posX + 52, posY + 55, 7, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (this.attackType === 'kick') {
+                if (this.position.y < 386) {
+                    // Patada giratoria aérea (Gira según animación)
+                    let spin = Math.sin(this.animationFrame * 5);
+                    ctx.beginPath();
+                    ctx.moveTo(posX, posY + 80);
+                    ctx.lineTo(posX + (spin * 55), posY + 80);
+                    ctx.stroke();
+                    ctx.fillStyle = '#ff5722';
+                    ctx.beginPath();
+                    ctx.arc(posX + (spin * 55), posY + 80, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Patada recta en el suelo
+                    ctx.beginPath();
+                    ctx.moveTo(posX + 10, posY + 90);
+                    ctx.lineTo(posX + 55, posY + 85);
+                    ctx.stroke();
+                    ctx.fillStyle = '#ff5722';
+                    ctx.beginPath();
+                    ctx.arc(posX + 58, posY + 85, 9, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         } else {
             ctx.beginPath();
-            ctx.moveTo(posX + 8, posY + 55);
-            ctx.lineTo(posX + 22, posY + 45);
-            ctx.lineTo(posX + 18, posY + 25);
+            ctx.moveTo(posX + 10, posY + 55);
+            ctx.lineTo(posX + 24, posY + 42);
+            ctx.lineTo(posX + 20, posY + 24);
             ctx.stroke();
         }
 
         ctx.restore();
+
+        // 6. RENDERIZADO DE LA BOLA DE LUZ (Se mantiene fija en su eje Y original)
+        if (this.specialBall.isActive) {
+            ctx.save();
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#00ffff';
+            
+            // Núcleo blanco con halo cian brillante
+            let glow = ctx.createRadialGradient(this.specialBall.x, this.specialBall.y, 2, this.specialBall.x, this.specialBall.y, this.specialBall.radius);
+            glow.addColorStop(0, '#ffffff');
+            glow.addColorStop(0.4, '#00ffff');
+            glow.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(this.specialBall.x, this.specialBall.y, this.specialBall.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
     }
 
     update(ctx, gravity, canvasHeight, opponent) {
         this.drawHumanoid(ctx);
         
+        // Movimiento rectilíneo uniforme de la esfera de luz
+        if (this.specialBall.isActive) {
+            this.specialBall.x += this.specialBall.speed * this.specialBall.direction;
+            
+            // Destrucción al sobrepasar los bordes visibles del mapa
+            if (this.specialBall.x > 1050 || this.specialBall.x < -50) {
+                this.specialBall.isActive = false;
+            }
+        }
+
         if (opponent) {
-            this.facing = (this.position.x < opponent.position.x) ? 'right' : 'left';
+            if (!this.specialBall.isActive) {
+                this.facing = (this.position.x < opponent.position.x) ? 'right' : 'left';
+            }
             
             if (this.facing === 'right') {
                 this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
             } else {
                 this.attackBox.position.x = this.position.x - this.attackBox.width + this.width - this.attackBox.offset.x;
             }
-            this.attackBox.position.y = this.position.y + 30;
+            
+            if (this.attackType === 'kick') {
+                this.attackBox.width = 110; 
+                this.attackBox.position.y = this.position.y + 60;
+            } else {
+                this.attackBox.width = 80;  
+                this.attackBox.position.y = this.position.y + 30;
+            }
 
             if (this.isAI && this.health > 0 && opponent.health > 0) {
                 this.think(opponent);
@@ -135,16 +219,22 @@ class Fighter {
     think(opponent) {
         const distance = Math.abs(this.position.x - opponent.position.x);
 
-        if (distance > 70) {
+        if (this.energy >= 100) {
+            this.fireSpecial();
+            return;
+        }
+
+        if (distance > 80) {
             this.velocity.x = (this.position.x < opponent.position.x) ? 3 : -3;
         } else {
             this.velocity.x = 0;
             if (Math.random() < 0.05 && !this.isAttacking) {
+                this.attackType = Math.random() < 0.6 ? 'punch' : 'kick';
                 this.attack();
             }
         }
 
-        if (opponent.isAttacking && distance < 120 && Math.random() < 0.1 && this.velocity.y === 0) {
+        if (opponent.isAttacking && distance < 130 && Math.random() < 0.08 && this.velocity.y === 0) {
             this.velocity.y = -13;
             playSound('jump');
         }
@@ -155,5 +245,24 @@ class Fighter {
         setTimeout(() => {
             this.isAttacking = false;
         }, 150);
+    }
+
+    fireSpecial() {
+        if (this.energy < 100 || this.specialBall.isActive) return;
+        
+        this.energy = 0;
+        this.attackType = 'special';
+        this.isAttacking = true;
+        playSound('beam');
+
+        // Inicialización de la bola en línea recta desde las manos
+        this.specialBall.isActive = true;
+        this.specialBall.direction = (this.facing === 'right') ? 1 : -1;
+        this.specialBall.y = this.position.y + 65; 
+        this.specialBall.x = (this.facing === 'right') ? this.position.x + this.width + 10 : this.position.x - 10;
+
+        setTimeout(() => {
+            this.isAttacking = false;
+        }, 300);
     }
 }

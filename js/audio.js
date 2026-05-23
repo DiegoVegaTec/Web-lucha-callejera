@@ -1,4 +1,3 @@
-// Motor de efectos de sonido usando Web Audio API (Cero archivos .mp3 externos)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
@@ -32,6 +31,16 @@ function playSound(type) {
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
             osc.start(now);
             osc.stop(now + 0.12);
+            break;
+
+        case 'beam': // Efecto sintetizado para la ráfaga de la bola de luz
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(350, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
             break;
 
         case 'ko': 

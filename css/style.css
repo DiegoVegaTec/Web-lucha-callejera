@@ -16,7 +16,6 @@ body {
     position: relative;
 }
 
-/* Canvas de fondo Matrix */
 #matrixCanvas {
     position: absolute;
     top: 0;
@@ -26,7 +25,6 @@ body {
     z-index: 1;
 }
 
-/* Contenedor del juego flotante */
 #game-container {
     position: relative;
     width: 1024px;
@@ -40,24 +38,29 @@ canvas#gameCanvas {
     display: block;
 }
 
-/* Interfaz Superior (HUD) */
 #hud {
     position: absolute;
     top: 20px;
     left: 20px;
     right: 20px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     z-index: 10;
 }
 
-.health-bar-container {
-    position: relative;
+.player-hud-block {
     width: 40%;
-    height: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.health-bar-container {
+    width: 100%;
+    height: 25px;
     background-color: #4a0000;
-    border: 4px solid #fff;
+    border: 3px solid #fff;
 }
 
 .health-bar {
@@ -65,6 +68,21 @@ canvas#gameCanvas {
     height: 100%;
     background-color: #ffcc00;
     transition: width 0.1s ease-out;
+}
+
+.energy-bar-container {
+    width: 80%;
+    height: 12px;
+    background-color: #111e2e;
+    border: 2px solid #00ffff;
+}
+
+.energy-bar {
+    width: 0%;
+    height: 100%;
+    background-color: #00ffff;
+    box-shadow: 0 0 8px #00ffff;
+    transition: width 0.2s ease-out;
 }
 
 #timer {
@@ -80,7 +98,6 @@ canvas#gameCanvas {
     align-items: center;
 }
 
-/* Pantalla de Texto Central y Botón */
 #game-over-screen {
     position: absolute;
     top: 50%;
@@ -126,7 +143,6 @@ canvas#gameCanvas {
     box-shadow: 0px 1px 0px #d35400;
 }
 
-/* Cuadro de Instrucciones (Lateral Izquierdo) */
 #controls-panel {
     position: absolute;
     bottom: 15px;
@@ -169,7 +185,6 @@ kbd {
     box-shadow: 0 2px 0 #000;
 }
 
-/* Pie de página con créditos (Lateral Derecho) */
 #credits-footer {
     position: absolute;
     bottom: 15px;
@@ -191,7 +206,6 @@ kbd {
     color: #fff;
 }
 
-/* Botón de X */
 #x-button {
     display: flex;
     align-items: center;

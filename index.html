@@ -12,12 +12,24 @@
 
     <div id="game-container">
         <div id="hud">
-            <div class="health-bar-container">
-                <div id="player-health" class="health-bar"></div>
+            <div class="player-hud-block">
+                <div class="health-bar-container">
+                    <div id="player-health" class="health-bar"></div>
+                </div>
+                <div class="energy-bar-container">
+                    <div id="player-energy" class="energy-bar"></div>
+                </div>
             </div>
+            
             <div id="timer">99</div>
-            <div class="health-bar-container">
-                <div id="enemy-health" class="health-bar" style="float: right;"></div>
+            
+            <div class="player-hud-block">
+                <div class="health-bar-container">
+                    <div id="enemy-health" class="health-bar" style="float: right;"></div>
+                </div>
+                <div class="energy-bar-container">
+                    <div id="enemy-energy" class="energy-bar" style="float: right;"></div>
+                </div>
             </div>
         </div>
 
@@ -33,7 +45,9 @@
         <h3>CONTROLES</h3>
         <div class="control-item"><kbd>A</kbd> <kbd>D</kbd> <span>Moverse</span></div>
         <div class="control-item"><kbd>W</kbd> <span>Saltar</span></div>
-        <div class="control-item"><kbd>Espacio</kbd> <span>Golpear</span></div>
+        <div class="control-item"><kbd>Espacio</kbd> <span>Golpe Básico</span></div>
+        <div class="control-item"><kbd>E</kbd> <span>Patada Suelo/Aire</span></div>
+        <div class="control-item"><kbd>Q</kbd> <span style="color: #00ffff; font-weight: bold;">¡BOLA ESPECIAL!</span></div>
     </div>
 
     <footer id="credits-footer">

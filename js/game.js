@@ -6,7 +6,7 @@ canvas.height = 576;
 
 const gravity = 0.6;
 
-// --- CONFIGURACIÓN DEL FONDO ANIMADO MATRIX (10101) ---
+// --- CONFIGURACIÓN MATRIX ---
 const mCanvas = document.getElementById('matrixCanvas');
 const mCtx = mCanvas.getContext('2d');
 
@@ -25,7 +25,6 @@ let dropPositions = Array(Math.floor(columns)).fill(1);
 function drawMatrixBackground() {
     mCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
-
     mCtx.fillStyle = '#00ff46'; 
     mCtx.font = fontSize + 'px monospace';
 
@@ -38,18 +37,15 @@ function drawMatrixBackground() {
         const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
         const x = i * fontSize;
         const y = dropPositions[i] * fontSize;
-
         mCtx.fillText(char, x, y);
-
         if (y > mCanvas.height && Math.random() > 0.975) {
             dropPositions[i] = 0;
         }
         dropPositions[i]++;
     }
 }
-// -----------------------------------------------------
+// ----------------------------
 
-// Instancias de Luchadores
 const player = new Fighter({
     position: { x: 150, y: 0 },
     velocity: { x: 0, y: 0 },
@@ -102,13 +98,11 @@ function determineWinner({ player, enemy, timerId }) {
         textScreen.innerText = 'FIN DEL JUEGO (K.O.)';
         textScreen.style.color = '#e74c3c';
     }
-
     restartBtn.style.display = 'block';
 }
 
 function animate() {
     window.requestAnimationFrame(animate);
-    
     drawMatrixBackground();
 
     let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -133,18 +127,57 @@ function animate() {
     }
 
     if (gameActive) {
-        if (rectangularCollision({ rectangle1: player, rectangle2: enemy }) && player.isAttacking) {
+        // --- COLISIONES DE GOLPES BÁSICOS ---
+        if (rectangularCollision({ rectangle1: player, rectangle2: enemy }) && player.isAttacking && player.attackType !== 'special') {
             player.isAttacking = false;
-            enemy.health -= 8;
+            let damage = player.attackType === 'kick' ? 12 : 7; 
+            enemy.health -= damage;
+            player.energy = Math.min(100, player.energy + 20); // 5 golpes para cargar el 100%
+            
             playSound('hit'); 
             document.getElementById('enemy-health').style.width = Math.max(0, enemy.health) + '%';
+            document.getElementById('player-energy').style.width = player.energy + '%';
         }
 
-        if (rectangularCollision({ rectangle1: enemy, rectangle2: player }) && enemy.isAttacking) {
+        if (rectangularCollision({ rectangle1: enemy, rectangle2: player }) && enemy.isAttacking && enemy.attackType !== 'special') {
             enemy.isAttacking = false;
-            player.health -= 12; 
+            let damage = enemy.attackType === 'kick' ? 14 : 9;
+            player.health -= damage;
+            enemy.energy = Math.min(100, enemy.energy + 20);
+            
             playSound('hit'); 
             document.getElementById('player-health').style.width = Math.max(0, player.health) + '%';
+            document.getElementById('enemy-energy').style.width = enemy.energy + '%';
+        }
+
+        // --- COLISIONES DE BOLA ESPECIAL (CÁLCULO MATEMÁTICO DE 1 HIT) ---
+        // Bola del Jugador impactando a la IA
+        if (player.specialBall.isActive) {
+            // Verificar si el centro de la bola está dentro del rectángulo del enemigo
+            if (player.specialBall.x >= enemy.position.x && 
+                player.specialBall.x <= enemy.position.x + enemy.width &&
+                player.specialBall.y >= enemy.position.y && 
+                player.specialBall.y <= enemy.position.y + enemy.height) {
+                
+                enemy.health -= 20; // Exactamente el 20% de la vida máxima
+                player.specialBall.isActive = false; // Se destruye al meter el hit único
+                playSound('hit');
+                document.getElementById('enemy-health').style.width = Math.max(0, enemy.health) + '%';
+            }
+        }
+
+        // Bola de la IA impactando al Jugador
+        if (enemy.specialBall.isActive) {
+            if (enemy.specialBall.x >= player.position.x && 
+                enemy.specialBall.x <= player.position.x + player.width &&
+                enemy.specialBall.y >= player.position.y && 
+                enemy.specialBall.y <= player.position.y + player.height) {
+                
+                player.health -= 20; 
+                enemy.specialBall.isActive = false; 
+                playSound('hit');
+                document.getElementById('player-health').style.width = Math.max(0, player.health) + '%';
+            }
         }
 
         if (player.health <= 0 || enemy.health <= 0) {
@@ -162,14 +195,22 @@ function restartGame() {
     
     player.health = 100;
     enemy.health = 100;
+    player.energy = 0;
+    enemy.energy = 0;
+    
     document.getElementById('player-health').style.width = '100%';
     document.getElementById('enemy-health').style.width = '100%';
+    document.getElementById('player-energy').style.width = '0%';
+    document.getElementById('enemy-energy').style.width = '0%';
     document.getElementById('timer').innerText = timer;
 
     player.position = { x: 150, y: 0 };
     player.velocity = { x: 0, y: 0 };
+    player.specialBall.isActive = false;
+    
     enemy.position = { x: 800, y: 0 };
     enemy.velocity = { x: 0, y: 0 };
+    enemy.specialBall.isActive = false;
 
     document.getElementById('game-over-text').innerText = '¡ROUND 1!';
     document.getElementById('game-over-text').style.color = '#fff';
@@ -197,7 +238,19 @@ window.addEventListener('keydown', (event) => {
             }
             break;
         case ' ':
-            player.attack();
+            if (!player.isAttacking) {
+                player.attackType = 'punch';
+                player.attack();
+            }
+            break;
+        case 'e': 
+            if (!player.isAttacking) {
+                player.attackType = 'kick';
+                player.attack();
+            }
+            break;
+        case 'q': 
+            player.fireSpecial();
             break;
     }
 });
