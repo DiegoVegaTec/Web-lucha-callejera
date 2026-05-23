@@ -6,6 +6,33 @@ canvas.height = 576;
 
 const gravity = 0.6;
 
+// Array global para almacenar las partículas activas del escenario
+let particles = [];
+
+// Función para instanciar ráfagas de chispas vectoriales al impactar
+function createSparks(x, y, color) {
+    for (let i = 0; i < 15; i++) {
+        particles.push(new Particle({
+            position: { x: x, y: y },
+            velocity: {
+                x: (Math.random() - 0.5) * 8,
+                y: (Math.random() - 0.5) * 8
+            },
+            color: color
+        }));
+    }
+}
+
+// Función auxiliar para generar un color hexadecimal aleatorio (Variedad Visual)
+function getRandomColor() {
+    const letters = '3456789ABCDEF'; // Evitamos colores muy oscuros para mantener la visibilidad
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * letters.length)];
+    }
+    return color;
+}
+
 // --- CONFIGURACIÓN MATRIX ---
 const mCanvas = document.getElementById('matrixCanvas');
 const mCtx = mCanvas.getContext('2d');
@@ -56,7 +83,7 @@ const player = new Fighter({
 const enemy = new Fighter({
     position: { x: 800, y: 0 },
     velocity: { x: 0, y: 0 },
-    color: '#c0392b', 
+    color: '#c0392b', // Color base inicial
     offset: { x: 40, y: 0 },
     isAI: true 
 });
@@ -119,22 +146,38 @@ function animate() {
     player.update(ctx, gravity, canvas.height, enemy);
     enemy.update(ctx, gravity, canvas.height, player);
 
+    // Renderizar y limpiar partículas de chispas activas
+    for (let i = particles.length - 1; i >= 0; i--) {
+        if (particles[i].alpha <= 0) {
+            particles.splice(i, 1);
+        } else {
+            particles[i].update(ctx);
+        }
+    }
+
     player.velocity.x = 0;
-    if (keys.a.pressed && player.lastKey === 'a') {
-        player.velocity.x = -6;
-    } else if (keys.d.pressed && player.lastKey === 'd') {
-        player.velocity.x = 6;
+    // El movimiento horizontal se restringe si el jugador está bloqueando
+    if (!player.isBlocking) {
+        if (keys.a.pressed && player.lastKey === 'a') {
+            player.velocity.x = -6;
+        } else if (keys.d.pressed && player.lastKey === 'd') {
+            player.velocity.x = 6;
+        }
     }
 
     if (gameActive) {
-        // --- COLISIONES DE GOLPES BÁSICOS ---
+        // --- COLISIONES DE GOLPES BÁSICOS (Con mitigación por Bloqueo) ---
         if (rectangularCollision({ rectangle1: player, rectangle2: enemy }) && player.isAttacking && player.attackType !== 'special') {
             player.isAttacking = false;
             let damage = player.attackType === 'kick' ? 12 : 7; 
+            
+            if (enemy.isBlocking) damage = damage * 0.5; // Absorbe el 50% de daño al bloquear
+            
             enemy.health -= damage;
-            player.energy = Math.min(100, player.energy + 20); // 5 golpes para cargar el 100%
+            player.energy = Math.min(100, player.energy + 20); 
             
             playSound('hit'); 
+            createSparks(enemy.position.x + enemy.width/2, player.attackBox.position.y, '#ffcc00'); // Chispas normales
             document.getElementById('enemy-health').style.width = Math.max(0, enemy.health) + '%';
             document.getElementById('player-energy').style.width = player.energy + '%';
         }
@@ -142,40 +185,49 @@ function animate() {
         if (rectangularCollision({ rectangle1: enemy, rectangle2: player }) && enemy.isAttacking && enemy.attackType !== 'special') {
             enemy.isAttacking = false;
             let damage = enemy.attackType === 'kick' ? 14 : 9;
+            
+            if (player.isBlocking) damage = damage * 0.5; // Absorbe el 50% de daño al bloquear
+            
             player.health -= damage;
             enemy.energy = Math.min(100, enemy.energy + 20);
             
             playSound('hit'); 
+            createSparks(player.position.x + player.width/2, enemy.attackBox.position.y, '#fff');
             document.getElementById('player-health').style.width = Math.max(0, player.health) + '%';
             document.getElementById('enemy-energy').style.width = enemy.energy + '%';
         }
 
-        // --- COLISIONES DE BOLA ESPECIAL (CÁLCULO MATEMÁTICO DE 1 HIT) ---
-        // Bola del Jugador impactando a la IA
+        // --- COLISIONES DE BOLA ESPECIAL (Con ráfaga explosiva de partículas) ---
         if (player.specialBall.isActive) {
-            // Verificar si el centro de la bola está dentro del rectángulo del enemigo
             if (player.specialBall.x >= enemy.position.x && 
                 player.specialBall.x <= enemy.position.x + enemy.width &&
                 player.specialBall.y >= enemy.position.y && 
                 player.specialBall.y <= enemy.position.y + enemy.height) {
                 
-                enemy.health -= 20; // Exactamente el 20% de la vida máxima
-                player.specialBall.isActive = false; // Se destruye al meter el hit único
+                let damage = 20;
+                if (enemy.isBlocking) damage = damage * 0.5; // Mitiga poder
+                
+                enemy.health -= damage; 
+                player.specialBall.isActive = false; 
                 playSound('hit');
+                createSparks(player.specialBall.x, player.specialBall.y, '#00ffff'); // Estallido de partículas cian
                 document.getElementById('enemy-health').style.width = Math.max(0, enemy.health) + '%';
             }
         }
 
-        // Bola de la IA impactando al Jugador
         if (enemy.specialBall.isActive) {
             if (enemy.specialBall.x >= player.position.x && 
                 enemy.specialBall.x <= player.position.x + player.width &&
                 enemy.specialBall.y >= player.position.y && 
                 enemy.specialBall.y <= player.position.y + player.height) {
                 
-                player.health -= 20; 
+                let damage = 20;
+                if (player.isBlocking) damage = damage * 0.5;
+                
+                player.health -= damage; 
                 enemy.specialBall.isActive = false; 
                 playSound('hit');
+                createSparks(enemy.specialBall.x, enemy.specialBall.y, '#00ffff'); // Estallido de partículas cian
                 document.getElementById('player-health').style.width = Math.max(0, player.health) + '%';
             }
         }
@@ -197,6 +249,12 @@ function restartGame() {
     enemy.health = 100;
     player.energy = 0;
     enemy.energy = 0;
+    player.isBlocking = false;
+    enemy.isBlocking = false;
+    particles = []; // Limpiar remanentes de partículas
+    
+    // Cambiar color aleatorio al enemigo en cada reinicio (Variedad Visual)
+    enemy.color = getRandomColor();
     
     document.getElementById('player-health').style.width = '100%';
     document.getElementById('enemy-health').style.width = '100%';
@@ -231,20 +289,23 @@ window.addEventListener('keydown', (event) => {
             keys.a.pressed = true;
             player.lastKey = 'a';
             break;
+        case 's': // Nueva mecánica: Mantener presionado para Activar Bloqueo
+            player.isBlocking = true;
+            break;
         case 'w':
-            if (player.velocity.y === 0) {
+            if (player.velocity.y === 0 && !player.isBlocking) {
                 player.velocity.y = -15;
                 playSound('jump'); 
             }
             break;
         case ' ':
-            if (!player.isAttacking) {
+            if (!player.isAttacking && !player.isBlocking) {
                 player.attackType = 'punch';
                 player.attack();
             }
             break;
         case 'e': 
-            if (!player.isAttacking) {
+            if (!player.isAttacking && !player.isBlocking) {
                 player.attackType = 'kick';
                 player.attack();
             }
@@ -259,5 +320,8 @@ window.addEventListener('keyup', (event) => {
     switch (event.key.toLowerCase()) {
         case 'd': keys.d.pressed = false; break;
         case 'a': keys.a.pressed = false; break;
+        case 's': // Soltar para desactivar escudo de bloqueo
+            player.isBlocking = false;
+            break;
     }
 });

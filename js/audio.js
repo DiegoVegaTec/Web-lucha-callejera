@@ -33,7 +33,7 @@ function playSound(type) {
             osc.stop(now + 0.12);
             break;
 
-        case 'beam': // Efecto sintetizado para la ráfaga de la bola de luz
+        case 'beam': 
             osc.type = 'sine';
             osc.frequency.setValueAtTime(350, now);
             osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);

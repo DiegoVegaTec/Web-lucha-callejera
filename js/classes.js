@@ -1,3 +1,31 @@
+// Clase para los efectos visuales de chispas vectoriales
+class Particle {
+    constructor({ position, velocity, color }) {
+        this.position = { x: position.x, y: position.y };
+        this.velocity = velocity;
+        this.radius = Math.random() * 3 + 2;
+        this.alpha = 1;
+        this.color = color;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    update(ctx) {
+        this.draw(ctx);
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+        this.alpha -= 0.02; // Desvanecimiento progresivo
+    }
+}
+
 class Fighter {
     constructor({ position, velocity, color, offset, isAI = false }) {
         this.position = position;
@@ -7,7 +35,6 @@ class Fighter {
         this.color = color;
         this.lastKey;
         
-        // Cajas de golpes básicos
         this.attackBox = {
             position: { x: this.position.x, y: this.position.y },
             offset: offset,
@@ -16,15 +43,15 @@ class Fighter {
         };
         
         this.isAttacking = false;
-        this.attackType = 'punch'; // 'punch', 'kick', 'special'
+        this.attackType = 'punch'; 
         this.health = 100;
         this.energy = 0; 
         this.isAI = isAI;
+        this.isBlocking = false; // Nueva bandera de mitigación de daño
         
         this.facing = isAI ? 'left' : 'right';
         this.animationFrame = 0;
 
-        // Propiedades de la bola de luz especial (Se mueve en línea recta)
         this.specialBall = {
             isActive: false,
             x: 0,
@@ -55,7 +82,7 @@ class Fighter {
             ctx.translate(-posX, 0);
         }
 
-        // 1. Cabeza humana estilizada
+        // 1. Cabeza
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(posX, posY + 22, 18, 0, Math.PI * 2);
@@ -71,7 +98,7 @@ class Fighter {
         ctx.lineTo(posX, posY + 46);
         ctx.stroke();
 
-        // 3. Torso anatómico
+        // 3. Torso
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.moveTo(posX - 22, posY + 46);
@@ -81,7 +108,7 @@ class Fighter {
         ctx.closePath();
         ctx.fill();
 
-        // 4. Piernas articuladas
+        // 4. Piernas
         ctx.lineWidth = 12;
         ctx.strokeStyle = this.color;
         ctx.lineCap = 'round';
@@ -99,11 +126,31 @@ class Fighter {
         ctx.lineTo(posX + 12 - legSwing * 10, posY + 150);
         ctx.stroke();
 
-        // 5. Brazos y ataques
+        // 5. Brazos (Condicionales para Guardia Pasiva, Ataque o Bloqueo)
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 9;
 
-        if (this.isAttacking) {
+        if (this.isBlocking) {
+            // Animación de bloqueo: Ambos brazos cubriendo juntos cruzados al frente
+            ctx.beginPath();
+            ctx.moveTo(posX + 4, posY + 55);
+            ctx.lineTo(posX + 25, posY + 45);
+            ctx.lineTo(posX + 25, posY + 20);
+            ctx.moveTo(posX + 12, posY + 55);
+            ctx.lineTo(posX + 28, posY + 50);
+            ctx.lineTo(posX + 28, posY + 25);
+            ctx.stroke();
+            
+            // Escudo sutil de energía defensiva
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(posX + 20, posY + 40, 25, -Math.PI/2, Math.PI/2);
+            ctx.fill();
+            ctx.stroke();
+        } 
+        else if (this.isAttacking) {
             if (this.attackType === 'punch') {
                 ctx.beginPath();
                 ctx.moveTo(posX + 10, posY + 55);
@@ -116,7 +163,6 @@ class Fighter {
             } 
             else if (this.attackType === 'kick') {
                 if (this.position.y < 386) {
-                    // Patada giratoria aérea (Gira según animación)
                     let spin = Math.sin(this.animationFrame * 5);
                     ctx.beginPath();
                     ctx.moveTo(posX, posY + 80);
@@ -127,7 +173,6 @@ class Fighter {
                     ctx.arc(posX + (spin * 55), posY + 80, 8, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
-                    // Patada recta en el suelo
                     ctx.beginPath();
                     ctx.moveTo(posX + 10, posY + 90);
                     ctx.lineTo(posX + 55, posY + 85);
@@ -139,6 +184,7 @@ class Fighter {
                 }
             }
         } else {
+            // Guardia pasiva normal
             ctx.beginPath();
             ctx.moveTo(posX + 10, posY + 55);
             ctx.lineTo(posX + 24, posY + 42);
@@ -148,13 +194,12 @@ class Fighter {
 
         ctx.restore();
 
-        // 6. RENDERIZADO DE LA BOLA DE LUZ (Se mantiene fija en su eje Y original)
+        // 6. Bola de Luz Especial
         if (this.specialBall.isActive) {
             ctx.save();
             ctx.shadowBlur = 25;
             ctx.shadowColor = '#00ffff';
             
-            // Núcleo blanco con halo cian brillante
             let glow = ctx.createRadialGradient(this.specialBall.x, this.specialBall.y, 2, this.specialBall.x, this.specialBall.y, this.specialBall.radius);
             glow.addColorStop(0, '#ffffff');
             glow.addColorStop(0.4, '#00ffff');
@@ -171,11 +216,8 @@ class Fighter {
     update(ctx, gravity, canvasHeight, opponent) {
         this.drawHumanoid(ctx);
         
-        // Movimiento rectilíneo uniforme de la esfera de luz
         if (this.specialBall.isActive) {
             this.specialBall.x += this.specialBall.speed * this.specialBall.direction;
-            
-            // Destrucción al sobrepasar los bordes visibles del mapa
             if (this.specialBall.x > 1050 || this.specialBall.x < -50) {
                 this.specialBall.isActive = false;
             }
@@ -224,6 +266,15 @@ class Fighter {
             return;
         }
 
+        // Lógica IA inteligente: Si el jugador ataca de cerca, la IA tiene probabilidad de bloquear
+        if (opponent.isAttacking && distance < 100 && Math.random() < 0.4) {
+            this.isBlocking = true;
+            this.velocity.x = 0;
+            return;
+        } else {
+            this.isBlocking = false;
+        }
+
         if (distance > 80) {
             this.velocity.x = (this.position.x < opponent.position.x) ? 3 : -3;
         } else {
@@ -241,6 +292,7 @@ class Fighter {
     }
 
     attack() {
+        if (this.isBlocking) return; // No se puede atacar mientras bloqueas
         this.isAttacking = true;
         setTimeout(() => {
             this.isAttacking = false;
@@ -248,14 +300,13 @@ class Fighter {
     }
 
     fireSpecial() {
-        if (this.energy < 100 || this.specialBall.isActive) return;
+        if (this.energy < 100 || this.specialBall.isActive || this.isBlocking) return;
         
         this.energy = 0;
         this.attackType = 'special';
         this.isAttacking = true;
         playSound('beam');
 
-        // Inicialización de la bola en línea recta desde las manos
         this.specialBall.isActive = true;
         this.specialBall.direction = (this.facing === 'right') ? 1 : -1;
         this.specialBall.y = this.position.y + 65; 
